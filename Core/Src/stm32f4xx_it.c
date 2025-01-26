@@ -47,7 +47,9 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-extern void DS18B20_TC_Interrupt_Handler (void);
+extern void DS18B20_PWM_TC_Interrupt_Handler (void);
+extern void DS18B20_IC_TC_Interrupt_Handler (void);
+extern void DS18B20_IC_Interrupt_Handler (void);
 
 /* USER CODE END PFP */
 
@@ -223,7 +225,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 void TIM1_CC_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_CC_IRQn 0 */
-	TIM1->SR &= ~(1 << 3);
+	DS18B20_IC_Interrupt_Handler();
   /* USER CODE END TIM1_CC_IRQn 0 */
   /* USER CODE BEGIN TIM1_CC_IRQn 1 */
 
@@ -236,7 +238,7 @@ void TIM1_CC_IRQHandler(void)
 void DMA2_Stream2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
-
+	DS18B20_IC_TC_Interrupt_Handler();
   /* USER CODE END DMA2_Stream2_IRQn 0 */
 
   /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
@@ -250,7 +252,7 @@ void DMA2_Stream2_IRQHandler(void)
 void DMA2_Stream6_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream6_IRQn 0 */
-	DS18B20_TC_Interrupt_Handler();
+	DS18B20_PWM_TC_Interrupt_Handler();
   /* USER CODE END DMA2_Stream6_IRQn 0 */
 
   /* USER CODE BEGIN DMA2_Stream6_IRQn 1 */

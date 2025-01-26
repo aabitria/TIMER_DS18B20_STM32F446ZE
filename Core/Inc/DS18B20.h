@@ -14,15 +14,10 @@
 #define _1              (10U)
 #define _IDLE           (0U)
 
-// LSB first
-static uint16_t Cmd_ConvertT_44h[9] = {_0, _0, _1, _0, _0, _0, _1, _0, _IDLE};
-static uint16_t Cmd_ReadSCr_BEh[9]  = {_0, _1, _1, _1, _1, _1, _0, _1, _IDLE};
-static uint16_t Cmd_SkipRom_CCh[9]  = {_0, _0, _1, _1, _0, _0, _1, _1, _IDLE};
-
 
 void DS18B20_Init (void);
 void DS18B20_Generate_Reset (void);
 void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len);
-
+void DS18B20_Read_Temp (void);
 
 #endif /* INC_DS18B20_H_ */

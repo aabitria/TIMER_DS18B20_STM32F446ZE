@@ -94,13 +94,16 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   DS18B20_Init();
-
+  HAL_Delay(5);
 
   DS18B20_Generate_Reset();
+  HAL_Delay(50);
 
-  DS18B20_Send_Cmd(Cmd_SkipRom_CCh, 9);
-  DS18B20_Send_Cmd(Cmd_ConvertT_44h, 9);
-  DS18B20_Send_Cmd(Cmd_ReadSCr_BEh, 9);
+  DS18B20_Read_Temp();
+
+//  DS18B20_Send_Cmd(Cmd_SkipRom_CCh, 9);
+//  DS18B20_Send_Cmd(Cmd_ConvertT_44h, 9);
+//  DS18B20_Send_Cmd(Cmd_ReadSCr_BEh, 9);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -108,8 +111,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  //TIM_Generate_Reset();
-	  //HAL_Delay(1000);
+//	  DS18B20_Generate_Reset();
+//	  HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
