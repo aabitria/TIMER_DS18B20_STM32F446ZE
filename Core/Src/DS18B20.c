@@ -5,6 +5,7 @@
  *      Author: Lenovo310
  */
 #include "DS18B20.h"
+#include <string.h>
 
 #define READ_TIME_CCR                   (10)
 
@@ -15,6 +16,51 @@ uint16_t Cmd_SkipRom_CCh[9]  = {_0, _0, _1, _1, _0, _0, _1, _1, _IDLE};
 
 
 uint16_t Input[72] = {0};
+float TempC;
+
+union DS18B20_Union
+{
+	uint64_t bits;
+	struct Bytes
+	{
+		uint8_t Temp_Lsb;
+		uint8_t Temp_Msb;
+		uint8_t Th_Reg;
+		uint8_t Tl_Reg;
+		uint8_t Cfg;
+		uint8_t Rsvd1;
+		uint8_t Rsvd2;
+		uint8_t Rsvd3;
+	} DS18B20_Bytes;
+};
+
+union DS18B20_Union DS18B20_Data;
+uint8_t DS18B20_Crc = {0};
+
+static void DS18B20_Update_Data (void)
+{
+	uint16_t i;
+
+	memset(&DS18B20_Data, 0, sizeof(DS18B20_Data));
+
+	for (i = 0; i < 64; i++)
+	{
+		if (Input[i] < 15)
+		{
+			DS18B20_Data.bits |= (1 << i);
+		}
+	}
+
+	DS18B20_Crc = 0;
+	for (i = 64; i < 72; i++)
+	{
+		if (Input[i] < 15)
+		{
+			DS18B20_Crc |= (1 << (i - 64));
+		}
+	}
+}
+
 
 static void DS18B20_TIM_Init_Override (void)
 {
@@ -72,14 +118,13 @@ static void DS18B20_DMA_Init (void)
 //			   | (1 << 6);          // periph to memory direction
 //
 //	MODIFY_REG(DMA2_Stream2->CR, clearmask, setmask);
+	// removal of the above has something to do with no interrupt after dma receive.  We forgot the TC interrupt set
 	SET_BIT(DMA2_Stream2->CR, 1 << 4);
 
 	// Update DMA enabled; CC3 DMA enabled
-//	TIM1->DIER &= ~((1 << 8) | (1 << 11));
 	TIM1->DIER |= (1 << 8) | (1 << 11) | (1 << 10);
 
 	// Capture/Compare DMA select - when update event occurs
-//	TIM1->CR2 &= ~(1 << 3);
 	TIM1->CR2 |= (1 << 3);
 
 	DMA2_Stream6->NDTR = 0;
@@ -192,8 +237,16 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	TIM1->EGR |= (1 << 0);
 
 
-	DMA2_Stream2->NDTR = 72;			// no idle bit/8 bits per byte, so we're reading 9B
+	DMA2_Stream2->NDTR = len;			// no idle bit/8 bits per byte, so we're reading 9B
 	DMA2_Stream2->M0AR = (uint32_t)buffer;
+
+	// Update DMA enabled; CC2 DMA enabled
+	TIM1->DIER &= ~((1 << 8) | (1 << 10));
+	TIM1->DIER |= (1 << 10); //((1 << 8));// | (1 << 10));
+
+	// Capture/Compare DMA select - when update event occurs
+	TIM1->CR2 &= ~(1 << 3);
+	//TIM1->CR2 |= (1 << 3);
 
 	Flag = 1;
 
@@ -202,6 +255,8 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	TIM1->CR1 |= (1 << 0);
 
 	while (Flag == 1);
+
+	TIM1->CCR3 = 0;
 
 	return;
 }
@@ -214,6 +269,7 @@ void DS18B20_PWM_TC_Interrupt_Handler (void)
 	{
 	    DMA2->HIFCR |= (1 << 21);
 	    Flag = 0;
+
 	}
 }
 
@@ -231,18 +287,12 @@ void DS18B20_IC_TC_Interrupt_Handler (void)
 	    {
 	    	TIM1->SR &= ~((1 << 2) | (1 << 10));
 	    }
+
 	}
 }
 
 void DS18B20_IC_Interrupt_Handler (void)
 {
-//    if (TIM1->SR & (1 << 2))
-//    {
-//    	TIM1->SR &= ~(1 << 2);
-//    	Flag = 0;
-//    	//ccr2 = TIM1->CCR2;
-//    }
-
 	// 1st capture event is still present, we just ignore it...
     if (TIM1->SR & (1 << 10))
     {
@@ -274,6 +324,11 @@ void DS18B20_Read_Temp (void)
 	HAL_Delay(1);
 	DS18B20_Receive(Input, 72);
 	HAL_Delay(1);
+
+	DS18B20_Update_Data();
+
+	uint16_t Temp = (DS18B20_Data.DS18B20_Bytes.Temp_Msb << 8) | (DS18B20_Data.DS18B20_Bytes.Temp_Lsb);
+	TempC = (float)Temp / 16.0f;
 
 	return;
 }

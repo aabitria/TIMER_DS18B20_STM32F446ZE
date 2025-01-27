@@ -111,8 +111,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-//	  DS18B20_Generate_Reset();
-//	  HAL_Delay(1000);
+	  DS18B20_Read_Temp();
+	  HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
