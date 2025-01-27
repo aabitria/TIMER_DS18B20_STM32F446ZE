@@ -68,19 +68,19 @@ static void DS18B20_TIM_Init_Override (void)
 	SET_BIT(TIM1->CR1, TIM_CR1_ARPE);
 
 	// Make this active HIGH so at the 5V line it's inverted (by the Q)
-	TIM1->CCER |= 1 << 9;
+	TIM1->CCER |= TIM_CCER_CC3P;
 
-	TIM1->CCMR1 |= 1 << 8;
+	TIM1->CCMR1 |= TIM_CCMR1_CC2S_0;
 
-	TIM1->CR1 &= ~(1 << 0);
+	TIM1->CR1 &= ~TIM_CR1_CEN;
 	TIM1->ARR = 999;
 	TIM1->CCR3 = 0;
 
-	// Enable PWM channels; input cpature enable will depend on function.
-	TIM1->CCER |= (1 << 8);
-	TIM1->EGR |= (1 << 0);
-	TIM1->BDTR |= (1 << 15);
-	TIM1->CR1 |= (1 << 0);
+	// Enable PWM channels; input capture enable only on reset and read.
+	TIM1->CCER |= TIM_CCER_CC3E;
+	TIM1->EGR |= TIM_EGR_UG;
+	TIM1->BDTR |= TIM_BDTR_MOE;
+	TIM1->CR1 |= TIM_CR1_CEN;
 }
 
 
@@ -118,22 +118,22 @@ uint16_t ccr2 = 0;
 void DS18B20_Generate_Reset (void)
 {
 	// clear flag in SR.
-	TIM1->SR &= ~((1 << 2) | (1 << 10));
-	TIM1->DIER &= ~(1 << 2);
-	TIM1->DIER |= (1 << 2);
+	TIM1->SR &= ~(TIM_SR_CC2IF | TIM_SR_CC2OF);
+	TIM1->DIER &= ~TIM_DIER_CC2IE;
+	TIM1->DIER |= TIM_DIER_CC2IE;
 
-	TIM1->CR1 &= ~(1 << 0);
+	TIM1->CR1 &= ~TIM_CR1_CEN;
 	TIM1->ARR = 999;
 	TIM1->CCR3 = 500;
 
 	// Enable capture
-	TIM1->CCER |= (1 << 4);
+	TIM1->CCER |= TIM_CCER_CC2E;
 
 	Flag = 1;
 
-	TIM1->EGR |= (1 << 0);
+	TIM1->EGR |= TIM_EGR_UG;
     // Fire!
-	TIM1->CR1 |= (1 << 0);
+	TIM1->CR1 |= TIM_CR1_CEN;
 
 	// This will take effect after the next update event.
 	TIM1->CCR3 = 0;
