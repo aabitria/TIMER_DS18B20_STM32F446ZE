@@ -86,46 +86,16 @@ static void DS18B20_TIM_Init_Override (void)
 
 static void DS18B20_DMA_Init (void)
 {
-	uint32_t setmask, clearmask;
-
 	DMA2_Stream6->CR &= ~(1 << 0);
 
-	// Set up DMA2_Stream6 for PWM/Send
-	// set minc, pinc, periphaddr, cndtr, normal mode, channel 6, TC interrupt
-    setmask =    (6 << 25)          // DMA2 stream6 channel 6
-			   | (1 << 16)          // medium priority
-			   | (1 << 13)          // mem size 16-bit
-			   | (1 << 11)          // periph size 16-bit
-			   | (1 << 10)          // mem addr incremented
-			   | (1 << 6)           // mem to periph direction
-			   | (1 << 4);			// TC int enabled
-    clearmask =  (1 << 9)           // periph address not incremented
-			   | (1 << 8);          // normal, not circular mode
+	// removal of the above has something to do with no interrupt after dma receive.
+	// We forgot to set TC interrupt
+	SET_BIT(DMA2_Stream6->CR, 1 << 4);
 
-	MODIFY_REG(DMA2_Stream6->CR, clearmask, setmask);
-
-	// Set up DMA2_Stream2 for IC/Recv
-	// set minc, pinc, periphaddr, cndtr, normal mode, channel 6, TC interrupt
-//    setmask =    (6 << 25)          // DMA2 stream2 channel 6, TIM1 CH2
-//			   | (1 << 16)          // medium priority
-//			   | (1 << 13)          // mem size 16-bit
-//			   | (1 << 11)          // periph size 16-bit
-//			   | (1 << 10)          // mem addr incremented
-//			   | (1 << 6)           // mem to periph direction
-//			   | (1 << 4);			// TC int enabled
-//    clearmask =  (1 << 9)           // periph address not incremented
-//			   | (1 << 8)           // normal, not circular mode
-//			   | (1 << 6);          // periph to memory direction
-//
-//	MODIFY_REG(DMA2_Stream2->CR, clearmask, setmask);
-	// removal of the above has something to do with no interrupt after dma receive.  We forgot the TC interrupt set
 	SET_BIT(DMA2_Stream2->CR, 1 << 4);
 
 	// Update DMA enabled; CC3 DMA enabled
 	TIM1->DIER |= (1 << 8) | (1 << 11) | (1 << 10);
-
-	// Capture/Compare DMA select - when update event occurs
-	//TIM1->CR2 |= (1 << 3);
 
 	DMA2_Stream6->NDTR = 0;
 	DMA2_Stream6->PAR = (uint32_t)&TIM1->CCR3;

@@ -101,9 +101,6 @@ int main(void)
 
   DS18B20_Read_Temp();
 
-//  DS18B20_Send_Cmd(Cmd_SkipRom_CCh, 9);
-//  DS18B20_Send_Cmd(Cmd_ConvertT_44h, 9);
-//  DS18B20_Send_Cmd(Cmd_ReadSCr_BEh, 9);
   /* USER CODE END 2 */
 
   /* Infinite loop */
