@@ -90,12 +90,12 @@ static void DS18B20_DMA_Init (void)
 
 	// removal of the above has something to do with no interrupt after dma receive.
 	// We forgot to set TC interrupt
-	SET_BIT(DMA2_Stream6->CR, 1 << 4);
+	SET_BIT(DMA2_Stream6->CR, DMA_SxCR_TCIE);
 
-	SET_BIT(DMA2_Stream2->CR, 1 << 4);
+	SET_BIT(DMA2_Stream2->CR, DMA_SxCR_TCIE);
 
 	// Update DMA enabled; CC3 DMA enabled
-	TIM1->DIER |= (1 << 8) | (1 << 11) | (1 << 10);
+	TIM1->DIER |= TIM_DIER_UDE | TIM_DIER_CC3DE | TIM_DIER_CC2DE;
 
 	DMA2_Stream6->NDTR = 0;
 	DMA2_Stream6->PAR = (uint32_t)&TIM1->CCR3;
@@ -163,14 +163,14 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	TIM1->EGR |= TIM_EGR_UG;
 
 	// set dma regs
-	DMA2_Stream6->CR &= ~(1 << 0);
+	DMA2_Stream6->CR &= ~DMA_SxCR_EN;
 
 	DMA2_Stream6->NDTR = len;
 	DMA2_Stream6->M0AR = (uint32_t)cmd;
 
 	// Update DMA enabled; CC3 DMA enabled
-	TIM1->DIER &= ~((1 << 8) | (1 << 11));
-	TIM1->DIER |= ((1 << 11));
+	TIM1->DIER &= ~(TIM_DIER_UDE | TIM_DIER_CC3DE);
+	TIM1->DIER |= TIM_DIER_CC3DE;
 
 	// Capture/Compare DMA select - when CCR event occurs
 	TIM1->CR2 &= ~TIM_CR2_CCDS;
@@ -178,7 +178,7 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	Flag = 1;
 
 	// Enable
-	DMA2_Stream6->CR |= (1 << 0);
+	DMA2_Stream6->CR |= DMA_SxCR_EN;
 	TIM1->CR1 |= TIM_CR1_CEN;
 
 	while (Flag == 1);
@@ -199,7 +199,7 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	TIM1->CCER |= TIM_CCER_CC2E;
 
 	// set dma regs
-	DMA2_Stream2->CR &= ~(1 << 0);
+	DMA2_Stream2->CR &= ~DMA_SxCR_EN;
 
 	// set arr, ccr
 	TIM1->ARR = 79;
@@ -220,7 +220,7 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	Flag = 1;
 
 	// Enable
-	DMA2_Stream2->CR |= (1 << 0);
+	DMA2_Stream2->CR |= DMA_SxCR_EN;
 	TIM1->CR1 |= TIM_CR1_CEN;
 
 	while (Flag == 1);
