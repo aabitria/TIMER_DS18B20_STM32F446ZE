@@ -153,14 +153,14 @@ void DS18B20_Generate_Reset (void)
 void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 {
 	// disable timer1
-	TIM1->CR1 &= ~(1 << 0);
+	TIM1->CR1 &= ~TIM_CR1_CEN;
 
 	// set arr, ccr
 	TIM1->ARR = 79;
 
 	// Disable capture
-	TIM1->CCER &= ~(1 << 4);
-	TIM1->EGR |= (1 << 0);
+	TIM1->CCER &= ~TIM_CCER_CC2E;
+	TIM1->EGR |= TIM_EGR_UG;
 
 	// set dma regs
 	DMA2_Stream6->CR &= ~(1 << 0);
@@ -172,14 +172,14 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	TIM1->DIER &= ~((1 << 8) | (1 << 11));
 	TIM1->DIER |= ((1 << 11));
 
-	// Capture/Compare DMA select - when update event occurs
-	TIM1->CR2 &= ~(1 << 3);
+	// Capture/Compare DMA select - when CCR event occurs
+	TIM1->CR2 &= ~TIM_CR2_CCDS;
 
 	Flag = 1;
 
 	// Enable
 	DMA2_Stream6->CR |= (1 << 0);
-	TIM1->CR1 |= (1 << 0);
+	TIM1->CR1 |= TIM_CR1_CEN;
 
 	while (Flag == 1);
 
@@ -190,13 +190,13 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 {
 	// disable timer1
-	TIM1->CR1 &= ~(1 << 0);
+	TIM1->CR1 &= ~TIM_CR1_CEN;
 
 	// Disable timer interrupt; only DMA interrupt allowed.
-	TIM1->DIER &= ~(1 << 2);
+	TIM1->DIER &= ~TIM_DIER_CC2IE;
 
 	// Enable capture
-	TIM1->CCER |= (1 << 4);
+	TIM1->CCER |= TIM_CCER_CC2E;
 
 	// set dma regs
 	DMA2_Stream2->CR &= ~(1 << 0);
@@ -204,24 +204,24 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	// set arr, ccr
 	TIM1->ARR = 79;
 	TIM1->CCR3 = READ_TIME_CCR;			// PWM still need to send 10 us pulse, then wait
-	TIM1->EGR |= (1 << 0);
+	TIM1->EGR |= TIM_EGR_UG;
 
 
 	DMA2_Stream2->NDTR = len;			// no idle bit/8 bits per byte, so we're reading 9B
 	DMA2_Stream2->M0AR = (uint32_t)buffer;
 
-	// Update DMA enabled; CC2 DMA enabled
-	TIM1->DIER &= ~((1 << 8) | (1 << 10));
-	TIM1->DIER |= (1 << 10);
+	// Update DMA disabled; CC2 DMA enabled
+	TIM1->DIER &= ~(TIM_DIER_UDE | TIM_DIER_CC2DE);
+	TIM1->DIER |= TIM_DIER_CC2DE;
 
 	// Capture/Compare DMA select - when CCR event occurs
-	TIM1->CR2 &= ~(1 << 3);
+	TIM1->CR2 &= ~TIM_CR2_CCDS;
 
 	Flag = 1;
 
 	// Enable
 	DMA2_Stream2->CR |= (1 << 0);
-	TIM1->CR1 |= (1 << 0);
+	TIM1->CR1 |= TIM_CR1_CEN;
 
 	while (Flag == 1);
 
@@ -234,9 +234,9 @@ void DS18B20_PWM_TC_Interrupt_Handler (void)
 {
 	uint32_t Hisr = READ_REG(DMA2->HISR);
 
-	if ((Hisr & (1 << 21)) != 0)
+	if ((Hisr & DMA_HISR_TCIF6) != 0)
 	{
-	    DMA2->HIFCR |= (1 << 21);
+	    DMA2->HIFCR |= DMA_HIFCR_CTCIF6;
 	    Flag = 0;
 
 	}
@@ -247,14 +247,14 @@ void DS18B20_IC_TC_Interrupt_Handler (void)
 {
 	uint32_t Lisr = READ_REG(DMA2->LISR);
 
-	if ((Lisr & (1 << 21)) != 0)
+	if ((Lisr & DMA_LISR_TCIF2) != 0)
 	{
-	    DMA2->LIFCR |= (1 << 21);
+	    DMA2->LIFCR |= DMA_LIFCR_CTCIF2;
 	    Flag = 0;
 
-	    if (TIM1->SR & (1 << 10))
+	    if (TIM1->SR & TIM_SR_CC2OF)
 	    {
-	    	TIM1->SR &= ~((1 << 2) | (1 << 10));
+	    	TIM1->SR &= ~(TIM_SR_CC2IF | TIM_SR_CC2OF);
 	    }
 
 	}
@@ -263,9 +263,9 @@ void DS18B20_IC_TC_Interrupt_Handler (void)
 void DS18B20_IC_Interrupt_Handler (void)
 {
 	// 1st capture event is still present, we just ignore it...
-    if (TIM1->SR & (1 << 10))
+    if (TIM1->SR & TIM_SR_CC2OF)
     {
-    	TIM1->SR &= ~((1 << 2) | (1 << 10));
+    	TIM1->SR &= ~(TIM_SR_CC2IF | TIM_SR_CC2OF);
     	Flag = 0;
     	//ccr2 = TIM1->CCR2;
     	return;
