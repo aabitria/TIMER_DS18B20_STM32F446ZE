@@ -135,6 +135,7 @@ void DS18B20_Generate_Reset (void)
     // Fire!
 	TIM1->CR1 |= (1 << 0);
 
+	// This will take effect after the next update event.
 	TIM1->CCR3 = 0;
 	TIM1->ARR = 79;
 
@@ -164,16 +165,15 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	// set dma regs
 	DMA2_Stream6->CR &= ~(1 << 0);
 
-	DMA2_Stream6->NDTR = len;			// should be 9
+	DMA2_Stream6->NDTR = len;
 	DMA2_Stream6->M0AR = (uint32_t)cmd;
 
 	// Update DMA enabled; CC3 DMA enabled
 	TIM1->DIER &= ~((1 << 8) | (1 << 11));
-	TIM1->DIER |= ((1 << 8) | (1 << 11));
+	TIM1->DIER |= ((1 << 11));
 
 	// Capture/Compare DMA select - when update event occurs
 	TIM1->CR2 &= ~(1 << 3);
-	//TIM1->CR2 |= (1 << 3);
 
 	Flag = 1;
 
@@ -181,10 +181,10 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	DMA2_Stream6->CR |= (1 << 0);
 	TIM1->CR1 |= (1 << 0);
 
-	TIM1->CCR3 = 0;
-
 	while (Flag == 1);
 
+	// Idle
+	TIM1->CCR3 = 0;
 }
 
 void DS18B20_Receive (uint16_t *buffer, uint16_t len)
@@ -212,11 +212,10 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 
 	// Update DMA enabled; CC2 DMA enabled
 	TIM1->DIER &= ~((1 << 8) | (1 << 10));
-	TIM1->DIER |= (1 << 10); //((1 << 8));// | (1 << 10));
+	TIM1->DIER |= (1 << 10);
 
 	// Capture/Compare DMA select - when CCR event occurs
 	TIM1->CR2 &= ~(1 << 3);
-	//TIM1->CR2 |= (1 << 3);
 
 	Flag = 1;
 
