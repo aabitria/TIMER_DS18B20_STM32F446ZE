@@ -125,7 +125,7 @@ static void DS18B20_DMA_Init (void)
 	TIM1->DIER |= (1 << 8) | (1 << 11) | (1 << 10);
 
 	// Capture/Compare DMA select - when update event occurs
-	TIM1->CR2 |= (1 << 3);
+	//TIM1->CR2 |= (1 << 3);
 
 	DMA2_Stream6->NDTR = 0;
 	DMA2_Stream6->PAR = (uint32_t)&TIM1->CCR3;
@@ -203,7 +203,7 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 
 	// Capture/Compare DMA select - when update event occurs
 	TIM1->CR2 &= ~(1 << 3);
-	TIM1->CR2 |= (1 << 3);
+	//TIM1->CR2 |= (1 << 3);
 
 	Flag = 1;
 
@@ -244,7 +244,7 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	TIM1->DIER &= ~((1 << 8) | (1 << 10));
 	TIM1->DIER |= (1 << 10); //((1 << 8));// | (1 << 10));
 
-	// Capture/Compare DMA select - when update event occurs
+	// Capture/Compare DMA select - when CCR event occurs
 	TIM1->CR2 &= ~(1 << 3);
 	//TIM1->CR2 |= (1 << 3);
 
