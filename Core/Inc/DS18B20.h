@@ -10,10 +10,6 @@
 
 #include "tim.h"
 
-#define _0              (70U)
-#define _1              (10U)
-#define _IDLE           (0U)
-
 
 void DS18B20_Init (void);
 void DS18B20_Generate_Reset (void);

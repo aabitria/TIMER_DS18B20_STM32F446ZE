@@ -7,7 +7,16 @@
 #include "DS18B20.h"
 #include <string.h>
 
-#define READ_TIME_CCR                   (10)
+#define _0                              (70U)
+#define _1                              (10U)
+#define _IDLE                           (0U)
+
+/* STM32 ARR and CCRx standard values */
+#define DS18B20_ARR_RESET               (999U)
+#define DS18B20_CCR_RESET               (499U)
+#define DS18B20_ARR_RW                  (79U)
+#define DS18B20_CCR_READ_TIME           (10U)
+
 
 // LSB first
 uint16_t Cmd_ConvertT_44h[9] = {_0, _0, _1, _0, _0, _0, _1, _0, _IDLE};
@@ -95,7 +104,7 @@ static void DS18B20_DMA_Init (void)
 	SET_BIT(DMA2_Stream2->CR, DMA_SxCR_TCIE);
 
 	// Update DMA enabled; CC3 DMA enabled
-	TIM1->DIER |= TIM_DIER_UDE | TIM_DIER_CC3DE | TIM_DIER_CC2DE;
+	TIM1->DIER |= TIM_DIER_CC3DE | TIM_DIER_CC2DE;
 
 	DMA2_Stream6->NDTR = 0;
 	DMA2_Stream6->PAR = (uint32_t)&TIM1->CCR3;
@@ -123,8 +132,8 @@ void DS18B20_Generate_Reset (void)
 	TIM1->DIER |= TIM_DIER_CC2IE;
 
 	TIM1->CR1 &= ~TIM_CR1_CEN;
-	TIM1->ARR = 999;
-	TIM1->CCR3 = 500;
+	TIM1->ARR = DS18B20_ARR_RESET;
+	TIM1->CCR3 = DS18B20_CCR_RESET;
 
 	// Enable capture
 	TIM1->CCER |= TIM_CCER_CC2E;
@@ -136,7 +145,7 @@ void DS18B20_Generate_Reset (void)
 	TIM1->CR1 |= TIM_CR1_CEN;
 
 	// This will take effect after the next update event.
-	TIM1->CCR3 = 0;
+	TIM1->CCR3 = _IDLE;
 	TIM1->ARR = 79;
 
 	// We must read the CCR2 reg to see if DS18 responded.
@@ -156,7 +165,7 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	TIM1->CR1 &= ~TIM_CR1_CEN;
 
 	// set arr, ccr
-	TIM1->ARR = 79;
+	TIM1->ARR = DS18B20_ARR_RW;
 
 	// Disable capture
 	TIM1->CCER &= ~TIM_CCER_CC2E;
@@ -184,7 +193,7 @@ void DS18B20_Send_Cmd (uint16_t *cmd, uint16_t len)
 	while (Flag == 1);
 
 	// Idle
-	TIM1->CCR3 = 0;
+	TIM1->CCR3 = _IDLE;
 }
 
 void DS18B20_Receive (uint16_t *buffer, uint16_t len)
@@ -202,8 +211,8 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 	DMA2_Stream2->CR &= ~DMA_SxCR_EN;
 
 	// set arr, ccr
-	TIM1->ARR = 79;
-	TIM1->CCR3 = READ_TIME_CCR;			// PWM still need to send 10 us pulse, then wait
+	TIM1->ARR = DS18B20_ARR_RW;
+	TIM1->CCR3 = DS18B20_CCR_READ_TIME;			// PWM still need to send 10 us pulse, then wait
 	TIM1->EGR |= TIM_EGR_UG;
 
 
@@ -225,7 +234,7 @@ void DS18B20_Receive (uint16_t *buffer, uint16_t len)
 
 	while (Flag == 1);
 
-	TIM1->CCR3 = 0;
+	TIM1->CCR3 = _IDLE;
 
 	return;
 }
